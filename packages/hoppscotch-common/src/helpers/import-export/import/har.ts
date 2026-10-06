@@ -9,6 +9,8 @@ import {
   HoppRESTRequest,
   getDefaultRESTRequest,
   makeCollection,
+  RawKeyValueEntry,
+  rawKeyValueEntriesToString,
 } from "@hoppscotch/data"
 import * as E from "fp-ts/Either"
 import { z } from "zod"
@@ -128,11 +130,18 @@ const convertPostDataToHoppBody = (
     if (postData.text) {
       bodyContent = formatXWWWFormUrlencodedForHoppscotch(postData.text)
     } else if (postData.params) {
-      bodyContent = postData.params
-        .map((param) => {
-          return `${param.name}:${param.value}`
+      bodyContent = rawKeyValueEntriesToString(
+        postData.params.map((param): RawKeyValueEntry => {
+          const description = param.comment ? String(param.comment) : ""
+          const base = {
+            key: param.name,
+            value: param.value ?? "",
+            active: true,
+            description,
+          }
+          return base
         })
-        .join("\n")
+      )
     }
 
     const body: HoppRESTReqBody = {
@@ -148,18 +157,21 @@ const convertPostDataToHoppBody = (
       contentType: "multipart/form-data",
       body:
         postData.params?.map((param) => {
+          const description = param.comment ? String(param.comment) : ""
           return param.fileName
             ? {
                 active: true,
                 isFile: true as const,
                 key: param.name,
                 value: [],
+                description,
               }
             : {
                 active: true,
                 isFile: false as const,
                 key: param.name,
                 value: param.value ?? "",
+                description,
               }
         }) ?? [],
     }

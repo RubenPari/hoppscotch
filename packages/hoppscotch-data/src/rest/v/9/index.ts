@@ -13,10 +13,27 @@ export default defineVersion({
   schema: V9_SCHEMA,
   initial: false,
   up(old: z.infer<typeof V8_SCHEMA>) {
-    // No migration for body, the new contentType added to each formdata field is optional
+    const rawBody = old.body as unknown as {
+      contentType?: unknown
+      body?: unknown
+    }
+    let migratedBody = old.body as unknown as z.infer<typeof HoppRESTReqBody>
+    if (rawBody && rawBody.contentType === "multipart/form-data") {
+      migratedBody = {
+        ...(rawBody as Record<string, unknown>),
+        contentType: "multipart/form-data",
+        body: Array.isArray(rawBody.body)
+          ? (rawBody.body as Array<Record<string, unknown>>).map((entry) => ({
+              ...entry,
+              description: "",
+            }))
+          : [],
+      } as unknown as z.infer<typeof HoppRESTReqBody>
+    }
     return {
       ...old,
       v: "9" as const,
+      body: migratedBody,
     }
   },
 })
