@@ -12,9 +12,27 @@ export default defineVersion({
   initial: false,
   schema: V2_SCHEMA,
   up(old: z.infer<typeof V1_SCHEMA>) {
+    const rawBody = old.body as unknown as {
+      contentType?: unknown
+      body?: unknown
+    }
+    let migratedBody = old.body as unknown as z.infer<typeof HoppRESTReqBody>
+    if (rawBody && rawBody.contentType === "multipart/form-data") {
+      migratedBody = {
+        ...(rawBody as Record<string, unknown>),
+        contentType: "multipart/form-data",
+        body: Array.isArray(rawBody.body)
+          ? (rawBody.body as Array<Record<string, unknown>>).map((entry) => ({
+              ...entry,
+              description: "",
+            }))
+          : [],
+      } as unknown as z.infer<typeof HoppRESTReqBody>
+    }
     return {
       ...old,
       v: "2" as const,
+      body: migratedBody,
     }
   },
 })
