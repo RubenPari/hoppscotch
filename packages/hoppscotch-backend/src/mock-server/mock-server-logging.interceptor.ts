@@ -141,8 +141,8 @@ export class MockServerLoggingInterceptor implements NestInterceptor {
    */
   private extractQueryParams(
     request: Request,
-  ): Record<string, string> | undefined {
-    const queryParams = request.query as Record<string, string>;
+  ): Record<string, string | string[]> | undefined {
+    const queryParams = request.query as Record<string, string | string[]>;
     return Object.keys(queryParams).length > 0 ? queryParams : undefined;
   }
 

@@ -1937,8 +1937,7 @@ describe('MockServerService', () => {
       const result = mockServerService['parseExample'](exampleData, requestId);
 
       expect(result).not.toBeNull();
-      // URLSearchParams keeps last value when keys duplicate
-      expect(result.queryParams.id).toBe('3');
+      expect(result.queryParams.id).toEqual(['1', '2', '3']);
     });
 
     test('should handle POST method with request body', () => {

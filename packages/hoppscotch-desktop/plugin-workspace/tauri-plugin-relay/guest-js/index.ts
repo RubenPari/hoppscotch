@@ -206,7 +206,7 @@ export interface Request {
   method: Method
   version: Version
   headers?: Record<string, string>
-  params?: Record<string, string>
+  params?: [string, string][]
   content?: ContentType
   auth?: AuthType
 

@@ -730,7 +730,7 @@ export class MockServerService {
     mockServer: dbMockServer,
     path: string,
     method: string,
-    queryParams?: Record<string, string>,
+    queryParams?: Record<string, string | string[]>,
     requestHeaders?: Record<string, string>,
     requestBody?: unknown,
   ): Promise<E.Either<string, MockServerResponse>> {
@@ -969,7 +969,7 @@ export class MockServerService {
       method: string;
       endpoint: string;
       path: string;
-      queryParams: Record<string, string>;
+      queryParams: Record<string, string | string[]>;
       statusCode: number;
       statusText: string;
       responseBody: string;
@@ -1100,7 +1100,7 @@ export class MockServerService {
       // Parse endpoint to extract path and query parameters
       let endpointString = String(exampleData.endpoint ?? '');
       let path = '/';
-      const queryParams: Record<string, string> = {};
+      const queryParams: Record<string, string | string[]> = {};
 
       // If endpoint starts with '<<', then cut the string after '>>'
       if (endpointString.startsWith('<<')) {
@@ -1125,10 +1125,11 @@ export class MockServerService {
       // Decode the pathname to preserve Hoppscotch variable syntax (<<variable>>)
       path = decodeURIComponent(url.pathname);
 
-      // Extract query parameters
-      url.searchParams.forEach((value, key) => {
-        queryParams[key] = value;
-      });
+      // Extract query parameters (preserve repeated keys as string[])
+      for (const key of new Set(url.searchParams.keys())) {
+        const values = url.searchParams.getAll(key);
+        queryParams[key] = values.length === 1 ? values[0] : values;
+      }
 
       return {
         id: exampleData.key || `${requestId}-${exampleData.name}`,
@@ -1149,6 +1150,20 @@ export class MockServerService {
     }
   }
 
+  private queryParamValuesMatch(
+    requestValue: string | string[],
+    exampleValue: string | string[],
+  ): boolean {
+    const requestValues = Array.isArray(requestValue)
+      ? requestValue
+      : [requestValue];
+    const exampleValues = Array.isArray(exampleValue)
+      ? exampleValue
+      : [exampleValue];
+
+    return exampleValues.every((value) => requestValues.includes(value));
+  }
+
   /**
    * Calculate match score for an example based on Postman's algorithm
    * Starting score: 100
@@ -1158,7 +1173,7 @@ export class MockServerService {
   private calculateMatchScore(
     example: any,
     requestPath: string,
-    requestQueryParams: Record<string, string>,
+    requestQueryParams: Record<string, string | string[]>,
   ): number {
     let score = 100;
 
@@ -1212,7 +1227,12 @@ export class MockServerService {
       // Check for matches
       exampleParamKeys.forEach((key) => {
         if (requestQueryParams[key] !== undefined) {
-          if (requestQueryParams[key] === exampleParams[key]) {
+          if (
+            this.queryParamValuesMatch(
+              requestQueryParams[key],
+              exampleParams[key],
+            )
+          ) {
             paramMatches++;
           } else {
             partialMatches++;
