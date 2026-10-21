@@ -73,7 +73,7 @@ export class MockServerController {
     );
 
     // Extract query parameters
-    const queryParams = req.query as Record<string, string>;
+    const queryParams = req.query as Record<string, string | string[]>;
 
     // Extract request headers (convert to lowercase for case-insensitive matching)
     const requestHeaders: Record<string, string> = {};

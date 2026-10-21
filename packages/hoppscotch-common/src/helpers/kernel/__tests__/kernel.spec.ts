@@ -330,9 +330,31 @@ describe("REST Request Transformation", () => {
       url: baseEffectiveRequest.effectiveFinalURL,
       method: "GET",
       headers: {},
-      params: {},
+      params: [],
       auth: { kind: "none" },
     })
+  })
+
+  it("preserves duplicate query parameter keys in order", async () => {
+    const request: EffectiveHoppRESTRequest = {
+      ...baseEffectiveRequest,
+      effectiveFinalParams: [
+        { active: true, key: "id", value: "1", description: "" },
+        { active: true, key: "id", value: "2", description: "" },
+        { active: false, key: "id", value: "skipped", description: "" },
+        { active: true, key: "a", value: "1", description: "" },
+        { active: true, key: "id", value: "3", description: "" },
+      ],
+    }
+
+    const result = await RESTRequest.toRequest(request)
+
+    expect(result.params).toEqual([
+      ["id", "1"],
+      ["id", "2"],
+      ["a", "1"],
+      ["id", "3"],
+    ])
   })
 
   it("includes auth parameters when basic auth is active", async () => {

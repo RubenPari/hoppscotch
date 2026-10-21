@@ -338,7 +338,7 @@ pub struct Request {
     #[serde(with = "http_serde::version")]
     pub version: Version,
     pub headers: Option<HashMap<String, String>>,
-    pub params: Option<HashMap<String, String>>,
+    pub params: Option<Vec<(String, String)>>,
     pub content: Option<ContentType>,
     pub auth: Option<AuthType>,
     pub security: Option<SecurityConfig>,

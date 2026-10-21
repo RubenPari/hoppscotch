@@ -122,11 +122,15 @@ export const implementation: VersionedAPI<RelayV1> = {
         (async () => {
           try {
             const startTime = Date.now()
+            const searchParams = new URLSearchParams()
+            for (const [key, value] of request.params ?? []) {
+              searchParams.append(key, value)
+            }
             const config: AxiosRequestConfig = {
               url: request.url,
               method: request.method,
               headers: request.headers,
-              params: request.params,
+              params: searchParams,
               data: request.content?.content,
               maxRedirects: request.meta?.options?.maxRedirects,
               timeout: request.meta?.options?.timeout,
