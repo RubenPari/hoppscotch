@@ -19,7 +19,49 @@ export type RawKeyValueEntry = {
   key: string
   value: string
   active: boolean
+  description?: string
 }
+
+/**
+ * Splits a decoded value into its actual value and trailing ` # description`.
+ * The serializer writes descriptions as `key: value # description`, so the
+ * parser reverses that here. A ` # ` delimiter (space-hash-space) is required
+ * to avoid truncating legitimate values containing `#` (e.g. `color #fff`
+ * without trailing space stays part of the value). Multiline descriptions are
+ * sanitized on serialize, so no newline handling is needed here.
+ */
+const splitValueAndDescription = (
+  value: string
+): { value: string; description: string } => {
+  const delimiter = " # "
+  const commentIndex = value.indexOf(delimiter)
+  if (commentIndex === -1) {
+    // Back-compat: `key: value #desc` (no space after #) written by earlier
+    // builds is still treated as a description to avoid data loss.
+    const legacyIndex = value.indexOf(" #")
+    if (
+      legacyIndex !== -1 &&
+      legacyIndex + 2 < value.length &&
+      value[legacyIndex + 2] !== " "
+    ) {
+      return {
+        value: value.substring(0, legacyIndex).trim(),
+        description: value.substring(legacyIndex + 2).trim(),
+      }
+    }
+    return { value, description: "" }
+  }
+  return {
+    value: value.substring(0, commentIndex).trim(),
+    description: value.substring(commentIndex + delimiter.length).trim(),
+  }
+}
+
+/**
+ * Sanitizes a description for the line-oriented raw format (no newlines).
+ */
+const sanitizeDescription = (description: string): string =>
+  description.replace(/[\r\n]+/g, " ").trim()
 
 /* Beginning of Parser Definitions */
 
@@ -171,8 +213,18 @@ export const rawKeyValueEntriesToString = (entries: RawKeyValueEntry[]) =>
       flow(
         recordUpdate("key", applyEscapeIfNeeded),
         recordUpdate("value", applyEscapeIfNeeded),
-        ({ key, value, active }) =>
-          active ? `${(key)}: ${value}` : `# ${key}: ${value}`
+        ({
+          key,
+          value,
+          active,
+          description,
+        }: RawKeyValueEntry) => {
+          const base = active ? `${key}: ${value}` : `# ${key}: ${value}`
+          const cleanDescription = description
+            ? sanitizeDescription(description)
+            : ""
+          return cleanDescription ? `${base} # ${cleanDescription}` : base
+        }
       )
     ),
     stringArrayJoin("\n")
@@ -195,13 +247,16 @@ export const parseRawKeyValueEntriesE = (s: string) =>
     E.map(
       ({ value }) => pipe(
         value,
-        RA.map(({ key, value, commented }) =>
-          <RawKeyValueEntry>{
+        RA.map(({ key, value, commented }) => {
+          const { value: parsedValue, description } =
+            splitValueAndDescription(value)
+          return <RawKeyValueEntry>{
             active: !commented,
             key,
-            value
+            value: parsedValue,
+            description,
           }
-        )
+        })
       )
     )
   )
@@ -223,13 +278,16 @@ export const strictParseRawKeyValueEntriesE = (s: string) =>
     E.map(
       ({ value }) => pipe(
         value,
-        RA.map(({ key, value, commented }) =>
-          <RawKeyValueEntry>{
+        RA.map(({ key, value, commented }) => {
+          const { value: parsedValue, description } =
+            splitValueAndDescription(value)
+          return <RawKeyValueEntry>{
             active: !commented,
             key,
-            value
+            value: parsedValue,
+            description,
           }
-        )
+        })
       )
     )
   )

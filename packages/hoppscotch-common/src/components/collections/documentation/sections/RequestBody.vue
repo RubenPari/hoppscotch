@@ -32,6 +32,9 @@
               <th class="text-left py-2 font-semibold text-secondaryDark">
                 {{ t("documentation.value") }}
               </th>
+              <th class="text-left py-2 font-semibold text-secondaryDark">
+                {{ t("documentation.description") }}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -45,6 +48,9 @@
               </td>
               <td class="py-2 text-secondaryLight">
                 {{ item.value }}
+              </td>
+              <td class="py-2 text-secondaryLight">
+                {{ item.description }}
               </td>
             </tr>
           </tbody>
@@ -89,7 +95,9 @@ function formatJSON(jsonString: string): string {
  * @param formData Form data string
  * @returns Array of key-value pairs
  */
-function parseFormData(formData: string): { key: string; value: string }[] {
+function parseFormData(
+  formData: string
+): { key: string; value: string; description?: string }[] {
   try {
     return typeof formData === "string" ? parseRawKeyValueEntries(formData) : []
   } catch (_e) {

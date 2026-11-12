@@ -108,6 +108,7 @@
                 active: entry.active,
                 isFile: entry.isFile,
                 contentType: entry.contentType,
+                description: entry.description ?? '',
               })
             "
           />
@@ -135,6 +136,7 @@
                   active: entry.active,
                   isFile: entry.isFile,
                   contentType: entry.contentType,
+                  description: entry.description ?? '',
                 })
               "
             />
@@ -156,6 +158,26 @@
                   active: entry.active,
                   isFile: entry.isFile,
                   contentType: $event,
+                  description: entry.description ?? '',
+                })
+              "
+            />
+          </span>
+          <span class="flex flex-1">
+            <input
+              v-model="entry.description"
+              :placeholder="t('count.description')"
+              type="text"
+              class="flex flex-1 px-4 bg-transparent text-secondaryLight"
+              :class="{ 'opacity-50': !entry.active }"
+              @change="
+                updateBodyParam(index, {
+                  key: entry.key,
+                  value: entry.value,
+                  active: entry.active,
+                  isFile: entry.isFile,
+                  contentType: entry.contentType,
+                  description: ($event.target as HTMLInputElement).value,
                 })
               "
             />
@@ -199,6 +221,7 @@
                     : false,
                   isFile: entry.isFile,
                   contentType: entry.contentType,
+                  description: entry.description ?? '',
                 })
               "
             />
@@ -367,6 +390,7 @@ const workingParams = ref<WorkingFormDataKeyValue[]>([
       active: true,
       isFile: false,
       contentType: undefined,
+      description: "",
     },
   },
 ])
@@ -384,6 +408,7 @@ watch(workingParams, (paramsList) => {
         value: "",
         active: true,
         isFile: false,
+        description: "",
       },
     })
   }
@@ -440,6 +465,7 @@ const addBodyParam = () => {
       value: "",
       active: true,
       isFile: false,
+      description: "",
     },
   })
 }
@@ -492,10 +518,16 @@ const convertWorkingParamsToBulkEditContent = (
       .filter((param) => param.entry.key !== "")
       // filter out file params
       .filter((param) => !param.entry.isFile)
-      .map(
-        (param) =>
-          `${!param.entry.active ? "#" : ""}${param.entry.key}: ${param.entry.value}`
-      )
+      .map((param) => {
+        const base = `${!param.entry.active ? "#" : ""}${param.entry.key}: ${
+          typeof param.entry.value === "string" ? param.entry.value : ""
+        }`
+        const description =
+          typeof param.entry.description === "string"
+            ? param.entry.description.trim()
+            : ""
+        return description ? `${base} # ${description}` : base
+      })
       .join("\n")
   )
 }
@@ -530,6 +562,7 @@ watch(bulkEditContent, () => {
         entry: {
           key: entry.key,
           value: entry.value,
+          description: entry.description ?? "",
           active: entry.active,
           isFile: false as const,
         },
@@ -579,6 +612,7 @@ const clearContent = () => {
         value: "",
         active: true,
         isFile: false,
+        description: "",
       },
     },
   ]
